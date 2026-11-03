@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le Grand Duel de l’Éco-Gestion</title>
+<style>
+:root{
+  --bg:#f3f1ec; --panel:#ffffff; --ink:#1b1b2f; --muted:#5d5d73; --line:#dcd8cf;
+  --T0:#e0262f; --T0s:#fde3e4; --T1:#1660d4; --T1s:#dfe9fb; --T2:#2a9a3c; --T2s:#ddf3e1; --T3:#e97b00; --T3s:#fdebd6;
+  --ok:#14935a; --ok-soft:#dcf5e8; --ko:#c81e1e; --ko-soft:#fbe0e0; --gold:#f2a900;
+  --c1:#7b3fe4; --c2:#0e9f9a; --c3:#d9468f; --c4:#5b6b7f;
+  --shadow:0 6px 24px rgba(0,0,0,.08); --radius:18px;
+}
+[data-theme="dark"]{
+  --bg:#12131c; --panel:#1d1f2b; --ink:#f4f4f8; --muted:#a8a9bb; --line:#2e3142;
+  --T0s:#3a1719; --T1s:#14233f; --T2s:#12301a; --T3s:#3a2508; --ok-soft:#10301f; --ko-soft:#3a1414;
+  --shadow:0 6px 24px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;overflow:hidden}
+button{font-family:inherit;cursor:pointer}
+.hidden{display:none!important}
+.screen{height:100vh;width:100vw;padding:2vh 2.5vw;display:flex;flex-direction:column}
+kbd{font-family:inherit;font-size:.7em;background:rgba(127,127,127,.18);border-radius:6px;padding:2px 7px;margin-left:6px;font-weight:600}
+
+/* ---------- SETUP ---------- */
+#setup{overflow:auto;align-items:center}
+.hero{text-align:center;margin:1vh 0 2vh}
+.kicker{font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-size:clamp(12px,1.1vw,16px)}
+.hero h1{margin:.4vh 0;font-size:clamp(34px,5vw,78px);line-height:1;font-weight:900;letter-spacing:-.02em}
+.hero h1 span{background:linear-gradient(90deg,var(--T0),var(--c1),var(--T1));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{margin:.6vh 0 0;color:var(--muted);font-size:clamp(14px,1.4vw,22px)}
+.setup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;width:min(1200px,100%)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow)}
+.card h3{margin:0 0 12px;font-size:clamp(15px,1.3vw,20px);display:flex;align-items:center;gap:8px}
+.team-input{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.team-input .dot{width:22px;height:22px;border-radius:50%;flex:none}
+.team-input input{flex:1;min-width:0;font-size:clamp(16px,1.4vw,22px);padding:9px 12px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{border:2px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:8px 16px;font-size:clamp(14px,1.2vw,19px);font-weight:700}
+.chip.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.chips input[type=number]{width:120px;font-size:clamp(14px,1.2vw,18px);padding:8px 12px;border-radius:999px;border:2px solid var(--line);background:var(--bg);color:var(--ink)}
+.hint{color:var(--muted);font-size:clamp(12px,1vw,15px);margin-top:10px}
+.toggle{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:clamp(14px,1.15vw,18px);cursor:pointer}
+.toggle input{width:22px;height:22px;accent-color:var(--c1);flex:none}
+.toggle em{color:var(--muted);font-style:normal;font-size:.85em}
+.rules{width:min(1200px,100%);margin-top:16px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.rule{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-weight:700;font-size:clamp(13px,1.15vw,18px)}
+.btn-big{margin:2.5vh 0 1vh;font-size:clamp(22px,2.4vw,38px);font-weight:900;padding:16px 56px;border:none;border-radius:999px;color:#fff;background:linear-gradient(90deg,var(--T0),var(--c1),var(--T1));box-shadow:0 10px 30px rgba(123,63,228,.35);transition:transform .15s}
+.btn-big:hover{transform:scale(1.04)}
+.btn-big:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.keys{color:var(--muted);font-size:clamp(12px,1vw,15px);text-align:center;margin-bottom:1vh}
+
+/* ---------- GAME ---------- */
+#game{gap:1.4vh}
+.topbar{display:grid;grid-template-columns:1fr auto 1fr;gap:1.6vw;align-items:center}
+.side{display:flex;gap:1vw;min-width:0}
+.side.right{justify-content:flex-end}
+.team-card{position:relative;flex:1;min-width:0;max-width:100%;background:var(--panel);border-radius:var(--radius);padding:1.1vh 1.2vw;border:4px solid transparent;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:space-between;gap:.6vw;opacity:.55;transition:all .3s}
+.team-card.active{opacity:1;transform:scale(1.04);border-color:var(--tc);box-shadow:0 0 0 6px var(--ts),var(--shadow)}
+.team-card .info{min-width:0}
+.team-name{font-weight:900;font-size:clamp(16px,1.8vw,32px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--tc)}
+.team-score{font-weight:900;font-size:clamp(36px,5vw,90px);line-height:1;font-variant-numeric:tabular-nums;color:var(--tc)}
+.n4 .team-name{font-size:clamp(14px,1.35vw,24px)} .n4 .team-score{font-size:clamp(30px,3.6vw,64px)}
+.n3 .team-name{font-size:clamp(15px,1.55vw,28px)} .n3 .team-score{font-size:clamp(32px,4.2vw,76px)}
+.team-score.bump{animation:bump .5s}
+@keyframes bump{40%{transform:scale(1.35)}}
+.adj{display:flex;flex-direction:column;gap:4px;flex:none}
+.adj button{width:28px;height:24px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--muted);font-weight:900;font-size:15px;line-height:1}
+.float{position:absolute;right:35%;top:5%;font-weight:900;font-size:clamp(28px,3.2vw,56px);color:var(--ok);animation:floatUp 1.3s forwards;pointer-events:none}
+@keyframes floatUp{to{transform:translateY(-70px);opacity:0}}
+.center{display:flex;flex-direction:column;align-items:center;gap:.6vh}
+.qcount{font-weight:800;color:var(--muted);font-size:clamp(14px,1.3vw,20px);white-space:nowrap}
+.progress{width:14vw;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+#progBar{height:100%;width:0;background:var(--ink);transition:width .4s}
+.timer{position:relative;width:15vh;height:15vh}
+.timer svg{width:100%;height:100%;transform:rotate(-90deg)}
+.timer circle{fill:none;stroke-width:9}
+.timer .track{stroke:var(--line)}
+.timer .ring{stroke:var(--ok);stroke-linecap:round;transition:stroke .3s}
+.timer.warn .ring{stroke:var(--gold)} .timer.danger .ring{stroke:var(--ko)}
+.timer.danger #timerTxt{color:var(--ko);animation:pulse .5s infinite alternate}
+@keyframes pulse{to{transform:scale(1.15)}}
+#timerTxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:6vh;font-variant-numeric:tabular-nums}
+.timer.paused #timerTxt{font-size:2.6vh;letter-spacing:.1em}
+.banner{text-align:center;font-weight:900;font-size:clamp(18px,2.1vw,34px);padding:1vh 1vw;border-radius:var(--radius);color:#fff;background:var(--ink);transition:background .3s}
+.banner.rebond{animation:shakeX .5s}
+.banner.neutral{background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+.qcard{background:var(--panel);border-radius:var(--radius);padding:2vh 2.2vw;box-shadow:var(--shadow);border:1px solid var(--line)}
+.qmeta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1vh}
+.pill{border-radius:999px;padding:4px 14px;font-weight:800;font-size:clamp(12px,1.1vw,18px);background:var(--bg);border:1px solid var(--line);color:var(--muted)}
+.pill.jackpot{background:var(--gold);color:#3a2700;border-color:var(--gold);animation:pulse .6s infinite alternate}
+.pill.type-oral{background:var(--c1);color:#fff;border-color:var(--c1)}
+.pill.type-vf{background:var(--c2);color:#fff;border-color:var(--c2)}
+.qtext{font-weight:800;font-size:clamp(24px,3.1vw,54px);line-height:1.2}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:1.4vh 1.2vw;flex:1;min-height:0}
+.choice{display:flex;align-items:center;gap:1.2vw;text-align:left;background:var(--panel);color:var(--ink);border:3px solid var(--line);border-radius:var(--radius);padding:1.4vh 1.4vw;font-size:clamp(18px,2.1vw,38px);font-weight:700;box-shadow:var(--shadow);transition:transform .12s,opacity .3s}
+.choice:hover{transform:translateY(-2px)}
+.choice .letter{flex:none;width:clamp(40px,4vw,70px);height:clamp(40px,4vw,70px);border-radius:14px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:clamp(20px,2.3vw,40px)}
+.choice[data-i="0"] .letter{background:var(--c1)} .choice[data-i="1"] .letter{background:var(--c2)}
+.choice[data-i="2"] .letter{background:var(--c3)} .choice[data-i="3"] .letter{background:var(--c4)}
+.choice.out{opacity:.35;text-decoration:line-through;border-color:var(--ko);background:var(--ko-soft);pointer-events:none}
+.choice.correct{border-color:var(--ok);background:var(--ok-soft);opacity:1;text-decoration:none;animation:bump .5s}
+.choice.correct .letter{background:var(--ok)}
+.choice.dim{opacity:.35}
+.choice.shake{animation:shakeX .45s}
+@keyframes shakeX{20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+.choices.vf .choice{justify-content:center;font-size:clamp(28px,3.4vw,60px)}
+.oral-zone{grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;gap:1.2vw;align-items:stretch}
+.oral-zone .info{grid-column:1 / -1;text-align:center;color:var(--muted);font-weight:700;font-size:clamp(14px,1.4vw,22px)}
+.verdict{border:none;border-radius:var(--radius);font-size:clamp(22px,2.6vw,44px);font-weight:900;color:#fff;padding:2vh}
+.verdict.ok{background:var(--ok)} .verdict.ko{background:var(--ko)}
+.explain{background:var(--ok-soft);border:2px solid var(--ok);border-radius:var(--radius);padding:1.4vh 1.6vw;font-size:clamp(16px,1.7vw,28px);line-height:1.35}
+.explain b{color:var(--ok)}
+.controls{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.controls button{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:10px 18px;font-weight:700;font-size:clamp(13px,1.1vw,18px)}
+.controls button.primary{background:var(--ink);color:var(--panel);border-color:var(--ink);font-size:clamp(16px,1.5vw,24px);padding:10px 28px}
+.controls button:disabled{opacity:.35;cursor:default}
+
+/* ---------- OVERLAY / END ---------- */
+.overlay{position:fixed;inset:0;background:rgba(10,10,20,.72);display:flex;align-items:center;justify-content:center;z-index:50;cursor:pointer}
+.overlay-box{background:var(--panel);color:var(--ink);border-radius:28px;padding:5vh 5vw;text-align:center;font-weight:900;font-size:clamp(28px,4vw,72px);animation:pop .35s;max-width:90vw}
+.overlay-box small{display:block;font-size:.38em;color:var(--muted);margin-top:2vh;font-weight:700}
+@keyframes pop{from{transform:scale(.6);opacity:0}}
+#end{align-items:center;justify-content:center;text-align:center;gap:2.4vh}
+.trophy{font-size:13vh;animation:pop .6s;line-height:1}
+#winner{font-size:clamp(32px,4.6vw,80px);font-weight:900;margin:0}
+.final{display:flex;gap:2.4vw;justify-content:center;align-items:flex-end;flex-wrap:wrap}
+.final .box{background:var(--panel);border-radius:var(--radius);padding:2vh 2vw;box-shadow:var(--shadow);min-width:18vw;border-top:8px solid var(--tc)}
+.final .box.first{transform:scale(1.08);box-shadow:0 0 0 6px var(--ts),var(--shadow)}
+.final .rank{font-size:clamp(26px,3vw,50px);line-height:1}
+.final .n{font-weight:900;font-size:clamp(18px,2vw,34px);color:var(--tc)}
+.final .s{font-weight:900;font-size:clamp(50px,7vw,120px);line-height:1;color:var(--tc)}
+.final .g{color:var(--muted);font-weight:700;font-size:clamp(13px,1.2vw,19px)}
+.end-btns{display:flex;gap:14px}
+.end-btns button{border:none;border-radius:999px;padding:14px 30px;font-size:clamp(16px,1.6vw,26px);font-weight:900;background:var(--ink);color:var(--panel)}
+.end-btns button.alt{background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:60}
+@media (max-width:800px){.setup-grid{grid-template-columns:1fr}.choices{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ================= RÉGLAGES ================= -->
+<section id="setup" class="screen">
+  <header class="hero">
+    <div class="kicker">Révisions · Économie-gestion · M. HADDOUCHE</div>
+    <h1>Le Grand Duel<br><span>de l’Éco-Gestion</span></h1>
+    <p class="sub">Des équipes, un chrono, une seule gagnante.</p>
+  </header>
+
+  <div class="setup-grid">
+    <div class="card">
+      <h3>👥 Les équipes</h3>
+      <div class="chips" id="nbChips" style="margin-bottom:14px">
+        <button class="chip on" data-nb="2">2 équipes</button>
+        <button class="chip" data-nb="3">3 équipes</button>
+        <button class="chip" data-nb="4">4 équipes</button>
+      </div>
+      <div id="teamInputs"></div>
+      <div class="hint">Repère : 2 équipes jusqu’à 12 élèves, 3 équipes de 12 à 20, 4 équipes au-delà. Laisse chaque équipe choisir son nom (30 secondes max !).</div>
+    </div>
+
+    <div class="card">
+      <h3>⏱️ Temps par question</h3>
+      <div class="chips" id="timeChips">
+        <button class="chip" data-time="10">10 s</button>
+        <button class="chip" data-time="15">15 s</button>
+        <button class="chip" data-time="20">20 s</button>
+        <button class="chip on" data-time="30">30 s</button>
+        <button class="chip" data-time="45">45 s</button>
+        <button class="chip" data-time="60">60 s</button>
+        <button class="chip" data-time="0">∞ Sans chrono</button>
+        <input type="number" id="customTime" min="5" max="300" placeholder="Autre (s)">
+      </div>
+      <div class="hint">En cas de rebond, l’équipe suivante a le même temps.</div>
+      <h3 style="margin-top:16px">🎯 Nombre de questions</h3>
+      <div class="chips" id="countChips">
+        <button class="chip" data-count="12">12</button>
+        <button class="chip on" data-count="20">20</button>
+        <button class="chip" data-count="24">24</button>
+        <button class="chip" data-count="32">32</button>
+        <button class="chip" data-count="40">40</button>
+        <button class="chip" data-count="0">Toutes</button>
+      </div>
+      <div class="hint" id="available"></div>
+    </div>
+
+    <div class="card">
+      <h3>📚 Thèmes révisés</h3>
+      <div id="themeToggles"></div>
+    </div>
+
+    <div class="card">
+      <h3>⚙️ Options</h3>
+      <label class="toggle"><input type="checkbox" id="optRebond" checked> Rebond : si l’équipe se trompe, l’équipe suivante peut voler la question</label>
+      <label class="toggle"><input type="checkbox" id="optJackpot" checked> Questions Jackpot surprise (points ×2)</label>
+      <label class="toggle"><input type="checkbox" id="optSound" checked> Effets sonores</label>
+    </div>
+  </div>
+
+  <div class="rules">
+    <span class="rule">✅ Bonne réponse = 2 pts</span>
+    <span class="rule">↩️ Rebond réussi = 1 pt</span>
+    <span class="rule">💰 Jackpot = points ×2</span>
+    <span class="rule">🎤 Défi oral = le prof valide</span>
+  </div>
+  <button class="btn-big" id="btnStart">C’est parti ! ▶</button>
+  <div class="keys">Clavier : <kbd>Espace</kbd> lancer / suivant · <kbd>A</kbd><kbd>B</kbd><kbd>C</kbd><kbd>D</kbd> réponse · <kbd>V</kbd> / <kbd>X</kbd> valider / refuser un défi oral · <kbd>P</kbd> pause · <kbd>F</kbd> plein écran</div>
+</section>
+
+<!-- ================= JEU ================= -->
+<section id="game" class="screen hidden">
+  <div class="topbar" id="topbar">
+    <div class="side left" id="sideL"></div>
+    <div class="center">
+      <div class="qcount">Question <b id="qNum">1</b> / <span id="qTotal">20</span></div>
+      <div class="progress"><div id="progBar"></div></div>
+      <div class="timer" id="timerWrap">
+        <svg viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="45"/><circle class="ring" id="ring" cx="50" cy="50" r="45" stroke-dasharray="282.74" stroke-dashoffset="0"/></svg>
+        <div id="timerTxt">30</div>
+      </div>
+    </div>
+    <div class="side right" id="sideR"></div>
+  </div>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="qcard">
+    <div class="qmeta">
+      <span class="pill" id="qTheme"></span>
+      <span class="pill" id="qType"></span>
+      <span class="pill jackpot hidden" id="qJackpot">💰 JACKPOT ×2</span>
+    </div>
+    <div class="qtext" id="qText"></div>
+  </div>
+
+  <div class="choices" id="choices"></div>
+  <div class="explain hidden" id="explain"></div>
+
+  <div class="controls">
+    <button id="btnMain" class="primary">▶ Lancer le chrono <kbd>Espace</kbd></button>
+    <button id="btnPause">⏸ Pause <kbd>P</kbd></button>
+    <button id="btnSkip">⏭ Passer</button>
+    <button id="btnFull">⛶ Plein écran <kbd>F</kbd></button>
+    <button id="btnSound" title="Son">🔊</button>
+    <button id="btnTheme" title="Mode clair / sombre">🌓</button>
+    <button id="btnQuit">🏁 Terminer</button>
+  </div>
+</section>
+
+<!-- ================= FIN ================= -->
+<section id="end" class="screen hidden">
+  <div class="trophy" id="trophy">🏆</div>
+  <h2 id="winner"></h2>
+  <div class="final" id="final"></div>
+  <div class="end-btns">
+    <button id="btnReplay">🔁 Revanche</button>
+    <button id="btnSettings" class="alt">⚙️ Changer les réglages</button>
+  </div>
+</section>
+
+<div id="overlay" class="overlay hidden"><div class="overlay-box" id="overlayBox"></div></div>
+<canvas id="confetti"></canvas>
+
+<script>
+/* =====================================================================
+   BANQUE DE QUESTIONS — Programme d’économie-gestion Bac Pro (2019)
+   Module 1 « Découvrir l’environnement d’une entreprise »
+   + Module 2 « Les choix d’une entreprise en matière de production »
+   + Module 3 (début) « Comment une entreprise crée-t-elle de la valeur ? / prix de vente »
+   Pour ajouter une question : copier une ligne et l’adapter.
+   type : "qcm" (c = choix, a = index de la bonne réponse, 0 = 1re),
+          "vf" (a : 0 = Vrai, 1 = Faux), "oral" (r = réponse attendue)
+   ===================================================================== */
+const THEMES = {
+  secteur:   {label:"Secteur & organisations", icon:"🏥"},
+  agents:    {label:"Agents économiques & échanges", icon:"🔄"},
+  contrat:   {label:"Le contrat", icon:"✍️"},
+  fonctions: {label:"Structure & fonctions de l’entreprise", icon:"🧩"},
+  offre:     {label:"Offre, demande & innovation", icon:"💡"},
+  prod:      {label:"Organisation de la production", icon:"⚙️"},
+  envir:     {label:"Environnement & adaptation", icon:"🌍"},
+  valeur:    {label:"Coûts, valeur ajoutée & prix", icon:"💶"}
+};
+
+const BANK = [
+/* ---------- SECTEUR D’ACTIVITÉ & ORGANISATIONS ---------- */
+{t:"secteur",type:"qcm",q:"Une auxiliaire de vie aide Mme Martin à faire sa toilette. Elle produit…",c:["Un bien","Un service","Une matière première","Un stock"],a:1,e:"Un service est immatériel : on ne peut ni le toucher ni le stocker. L’aide à la toilette est un service."},
+{t:"secteur",type:"qcm",q:"Lequel de ces exemples est un BIEN ?",c:["Une consultation chez le médecin","Un fauteuil roulant","Un transport en ambulance","Une séance de kiné"],a:1,e:"Un bien est matériel : on peut le toucher, le stocker, le transporter. Les trois autres réponses sont des services."},
+{t:"secteur",type:"qcm",q:"L’hôpital public soigne les patients sans leur faire payer le vrai coût des soins. C’est une production…",c:["Marchande","Non marchande","Illégale","Industrielle"],a:1,e:"Production non marchande = fournie gratuitement ou à un prix très inférieur à son coût. Elle est financée surtout par les impôts et les cotisations sociales."},
+{t:"secteur",type:"qcm",q:"Une entreprise de services à la personne vend ses prestations à un prix qui couvre ses coûts et lui laisse un bénéfice. C’est une production…",c:["Marchande","Non marchande","Bénévole","Publique"],a:0,e:"Production marchande = vendue sur un marché à un prix qui couvre au moins ce qu’elle coûte."},
+{t:"secteur",type:"qcm",q:"Un secteur d’activité regroupe les entreprises qui…",c:["Sont dans la même ville","Ont la même activité principale","Ont le même patron","Ont le même nombre de salariés"],a:1,e:"Selon l’Insee, un secteur regroupe les entreprises qui ont la même activité principale. Exemple : le secteur « santé humaine et action sociale »."},
+{t:"secteur",type:"qcm",q:"Selon l’Insee, une PME emploie…",c:["Moins de 10 personnes","Moins de 250 personnes","Moins de 5 000 personnes","Plus de 5 000 personnes"],a:1,e:"Microentreprise : moins de 10 personnes · PME : moins de 250 · ETI : de 250 à 4 999 · Grande entreprise : 5 000 et plus. (Il existe aussi des critères de chiffre d’affaires.)"},
+{t:"secteur",type:"qcm",q:"Quel est le but principal d’un groupe privé d’EHPAD coté en Bourse ?",c:["Réaliser des bénéfices","Être financé uniquement par les impôts","Ne rien vendre","Faire travailler des bénévoles"],a:0,e:"Une entreprise privée a une finalité lucrative : elle cherche à faire des bénéfices, tout en rendant un service à ses clients."},
+{t:"secteur",type:"qcm",q:"Laquelle de ces structures fait partie de l’économie sociale et solidaire (ESS) ?",c:["Une association d’aide à domicile","Une chaîne de fast-food","Une banque d’affaires américaine","Une marque de luxe"],a:0,e:"L’ESS regroupe surtout les associations, les coopératives, les mutuelles et les fondations : l’humain passe avant le profit."},
+{t:"secteur",type:"qcm",q:"Une mutuelle santé appartient à…",c:["L’économie sociale et solidaire","L’administration publique","Le reste du monde","Aucune organisation"],a:0,e:"Une mutuelle appartient à ses adhérents et ne cherche pas à enrichir des actionnaires : c’est une organisation de l’ESS."},
+{t:"secteur",type:"vf",q:"Une association a le droit d’employer des salariés.",a:0,e:"VRAI ! Beaucoup d’associations du secteur sanitaire et social emploient des salariés : aides à domicile, éducateurs, animateurs…"},
+{t:"secteur",type:"vf",q:"Une association n’a pas le droit de gagner plus d’argent qu’elle n’en dépense.",a:1,e:"FAUX. Elle peut dégager un excédent, mais elle ne le partage pas entre ses membres : il sert au projet de l’association. C’est ça, le « but non lucratif »."},
+{t:"secteur",type:"qcm",q:"Qui contrôle que les employeurs respectent le Code du travail ?",c:["L’inspection du travail","La mairie","Les clients","Le comptable de l’entreprise"],a:0,e:"L’inspection du travail est un service de l’État : elle assure une mission de service public."},
+{t:"secteur",type:"qcm",q:"Le rôle principal d’un syndicat de salariés est de…",c:["Défendre les intérêts des salariés","Vendre des produits","Recruter à la place du patron","Encaisser les impôts"],a:0,e:"Les syndicats (organisations professionnelles) défendent les intérêts de ceux qu’ils représentent : salariés d’un côté, employeurs de l’autre."},
+{t:"secteur",type:"oral",q:"Donne un exemple de BIEN et un exemple de SERVICE dans le secteur sanitaire et social.",r:"Bien : lit médicalisé, déambulateur, médicament, gants… — Service : soins, aide au repas, garde d’enfants, accompagnement d’une personne âgée…",e:"Bien = matériel. Service = immatériel."},
+{t:"secteur",type:"oral",q:"Cite 2 types d’organisations de l’économie sociale et solidaire.",r:"Association, coopérative, mutuelle, fondation (2 suffisent).",e:"Leur point commun : l’utilité sociale passe avant le profit."},
+
+/* ---------- AGENTS ÉCONOMIQUES & ÉCHANGES ---------- */
+{t:"agents",type:"qcm",q:"Ta famille, qui consomme et qui travaille, est un agent économique appelé…",c:["Ménage","Entreprise","Institution financière","Reste du monde"],a:0,e:"Les ménages consomment des biens et des services et fournissent leur travail aux entreprises et aux administrations."},
+{t:"agents",type:"qcm",q:"Une banque est un agent économique de type…",c:["Institution financière","Ménage","Administration publique","Association"],a:0,e:"Banques et assurances = institutions financières : elles collectent l’épargne et accordent des crédits."},
+{t:"agents",type:"qcm",q:"Le CHRU de Nancy (hôpital public) fait partie des…",c:["Administrations publiques","Ménages","Institutions financières","Reste du monde"],a:0,e:"Les hôpitaux publics font partie des administrations publiques : ils rendent des services surtout non marchands."},
+{t:"agents",type:"qcm",q:"Un fabricant allemand vend des lits médicalisés à un EHPAD lorrain. Le fabricant allemand représente…",c:["Le reste du monde","Un ménage","Une administration publique","Une institution financière"],a:0,e:"Reste du monde = tous les agents situés à l’étranger qui échangent avec la France."},
+{t:"agents",type:"qcm",q:"Combien d’agents économiques étudie-t-on ?",c:["3","4","5","7"],a:2,e:"5 : les ménages, les entreprises, les institutions financières, les administrations publiques et le reste du monde."},
+{t:"agents",type:"qcm",q:"L’aide-soignante travaille à l’EHPAD et reçoit un salaire. Le salaire est un flux…",c:["Réel","Financier","Imaginaire","Juridique"],a:1,e:"Flux financier = de l’argent qui circule (salaire, paiement, impôt…)."},
+{t:"agents",type:"qcm",q:"Le travail fourni par l’aide-soignante à l’EHPAD est un flux…",c:["Réel","Financier","Bancaire","Monétaire"],a:0,e:"Flux réel = des biens, des services ou du travail. En face, il y a un flux financier : le salaire."},
+{t:"agents",type:"qcm",q:"Un marché, c’est…",c:["Uniquement le marché du dimanche matin","La rencontre entre une offre et une demande","Un hypermarché","Une banque"],a:1,e:"Le marché peut être physique (un marché sur une place) ou virtuel (un site internet) : c’est là où l’offre rencontre la demande."},
+{t:"agents",type:"qcm",q:"Quand une entreprise paie ses impôts, l’argent va vers…",c:["Les administrations publiques","Les ménages","Le reste du monde","Les syndicats"],a:0,e:"Les impôts financent les administrations publiques (État, collectivités…), qui financent à leur tour les services publics."},
+{t:"agents",type:"qcm",q:"Que versent par exemple les administrations publiques aux ménages ?",c:["Des allocations (familiales, logement…)","Des actions en Bourse","Des marchandises","Des crédits immobiliers"],a:0,e:"Les administrations publiques redistribuent une partie des richesses : allocations, prestations sociales…"},
+{t:"agents",type:"vf",q:"Un même agent économique peut être à la fois acheteur et vendeur.",a:0,e:"VRAI : une crèche achète des couches à un fournisseur et vend un service de garde aux familles."},
+{t:"agents",type:"oral",q:"Cite les 5 agents économiques.",r:"Ménages, entreprises, institutions financières, administrations publiques, reste du monde.",e:"Ils échangent entre eux des flux réels et des flux financiers."},
+{t:"agents",type:"oral",q:"Entre une famille et une crèche : donne un flux réel et un flux financier.",r:"Flux réel : la garde de l’enfant (service rendu par la crèche). Flux financier : le paiement de la famille à la crèche.",e:"À chaque flux réel correspond en général un flux financier dans l’autre sens."},
+
+/* ---------- LE CONTRAT ---------- */
+{t:"contrat",type:"qcm",q:"Un contrat, c’est…",c:["Un accord de volontés qui crée des obligations","Un simple conseil","Une loi votée par les députés","Une promesse sans conséquence"],a:0,e:"Code civil, article 1101 : le contrat est un accord de volontés entre deux ou plusieurs personnes destiné à créer, modifier, transmettre ou éteindre des obligations."},
+{t:"contrat",type:"qcm",q:"Les personnes qui concluent un contrat s’appellent…",c:["Les parties","Les témoins","Les juges","Les avocats"],a:0,e:"Les parties sont les personnes engagées par le contrat."},
+{t:"contrat",type:"qcm",q:"La liberté contractuelle, c’est la liberté de…",c:["Contracter ou non, choisir avec qui, et décider du contenu","Faire tout ce qu’on veut, même contre la loi","Ne pas respecter un contrat signé","Signer à la place de quelqu’un"],a:0,e:"Code civil, article 1102. Mais attention : on ne peut pas faire un contrat contraire à la loi ou à l’ordre public."},
+{t:"contrat",type:"qcm",q:"Peut-on signer un contrat pour vendre un de ses organes ?",c:["Oui, si les deux sont d’accord","Non, c’est interdit par la loi","Oui, chez un notaire","Oui, si on est majeur"],a:1,e:"Le corps humain ne peut pas être vendu (Code civil, art. 16-1 et 16-5). C’est une limite à la liberté contractuelle."},
+{t:"contrat",type:"qcm",q:"Une fois signé, le contrat s’impose aux parties comme une loi. C’est le principe de…",c:["La force obligatoire","La liberté totale","L’annulation automatique","La responsabilité pénale"],a:0,e:"Code civil, article 1103 : les contrats légalement formés tiennent lieu de loi à ceux qui les ont faits."},
+{t:"contrat",type:"qcm",q:"Le médecin doit tout faire pour soigner, mais ne peut pas garantir la guérison. Il a une obligation de…",c:["Moyens","Résultat","Silence","Vente"],a:0,e:"Obligation de moyens : mettre tout en œuvre pour réussir, sans garantir le résultat."},
+{t:"contrat",type:"qcm",q:"Le taxi doit amener le patient à destination, sain et sauf. Il a une obligation de…",c:["Moyens","Résultat","Discrétion","Conseil"],a:1,e:"Obligation de résultat : si le résultat n’est pas atteint, il est responsable (sauf cas exceptionnels comme la force majeure)."},
+{t:"contrat",type:"qcm",q:"Le prestataire de repas à domicile oublie de livrer Mme Martin pendant 3 jours. C’est…",c:["Une inexécution contractuelle","Un cadeau","La liberté contractuelle","Une obligation de moyens"],a:0,e:"Une partie ne fait pas ce qu’elle a promis dans le contrat : c’est une inexécution contractuelle."},
+{t:"contrat",type:"qcm",q:"Pour engager la responsabilité civile contractuelle, il faut 3 conditions. Laquelle est FAUSSE ?",c:["Une inexécution du contrat","Un dommage","Un lien de causalité entre les deux","Un contrat signé devant un juge"],a:3,e:"Les 3 conditions : inexécution + dommage + lien de causalité. Pas besoin de juge pour conclure un contrat !"},
+{t:"contrat",type:"qcm",q:"Les dommages-intérêts, c’est…",c:["Une somme d’argent pour réparer le préjudice","Une amende versée à l’État","Une peine de prison","Une réduction d’impôt"],a:0,e:"Ils indemnisent la victime de l’inexécution du contrat. L’amende, elle, relève du droit pénal."},
+{t:"contrat",type:"vf",q:"Pour être valable, un contrat doit toujours être écrit.",a:1,e:"FAUX ! En principe, un simple accord suffit (Code civil, art. 1172) : acheter son pain, c’est un contrat oral. L’écrit sert à prouver, et il est parfois obligatoire (ex. : un CDD)."},
+{t:"contrat",type:"vf",q:"Dans un contrat, chaque partie a des droits ET des obligations.",a:0,e:"VRAI. Ex. : la famille a droit à la garde de l’enfant et doit payer ; la crèche doit garder l’enfant et a droit au paiement."},
+{t:"contrat",type:"oral",q:"Explique avec tes mots la différence entre obligation de moyens et obligation de résultat. Donne un exemple.",r:"Moyens : tout faire pour réussir sans garantir le résultat (ex. : le médecin). Résultat : obligation d’atteindre le résultat promis (ex. : le transporteur doit amener la personne à destination).",e:"La différence compte quand il faut prouver une inexécution."},
+{t:"contrat",type:"oral",q:"Cite les 3 conditions de la responsabilité civile contractuelle.",r:"Une inexécution du contrat, un dommage, un lien de causalité entre les deux.",e:"Si les 3 sont réunies, la victime peut obtenir des dommages-intérêts."},
+
+/* ---------- MODULE 2 : STRUCTURE & FONCTIONS ---------- */
+{t:"fonctions",type:"qcm",q:"Dans un EHPAD, quel service recrute le personnel et gère la formation des salariés ?",c:["Les ressources humaines","Le marketing","La logistique","La comptabilité"],a:0,e:"La fonction ressources humaines (RH) gère le personnel : recrutement, formation, paie…"},
+{t:"fonctions",type:"qcm",q:"Quelle fonction commande les produits d’hygiène et le matériel médical auprès des fournisseurs ?",c:["Les achats","Les ressources humaines","La direction","La recherche et développement"],a:0,e:"La fonction achats choisit les fournisseurs et passe les commandes."},
+{t:"fonctions",type:"qcm",q:"Un organigramme représente…",c:["Les services de l’entreprise et qui dirige qui","Le chiffre d’affaires","Le planning des congés","La liste des clients"],a:0,e:"L’organigramme est un schéma de l’organisation : les services et les liens hiérarchiques."},
+{t:"fonctions",type:"qcm",q:"Quelle fonction paie les factures et suit l’argent qui entre et qui sort ?",c:["Comptabilité et finances","Production","Marketing","Logistique"],a:0,e:"La fonction comptabilité et finances enregistre les opérations et gère la trésorerie."},
+{t:"fonctions",type:"qcm",q:"La fonction logistique s’occupe…",c:["Du stockage, des livraisons et des transports","Du recrutement","De la publicité","Des contrats de travail"],a:0,e:"La logistique fait arriver le bon produit, au bon endroit, au bon moment."},
+{t:"fonctions",type:"oral",q:"Cite 4 fonctions de l’entreprise.",r:"Achats · comptabilité et finances · direction et administration · logistique · marketing et ventes · production · recherche et développement · ressources humaines.",e:"Ce sont les 8 fonctions listées par le programme."},
+/* ---------- MODULE 2 : OFFRE, DEMANDE & INNOVATION ---------- */
+{t:"offre",type:"qcm",q:"La demande, c’est…",c:["Ce que les clients veulent acheter","Ce que les entreprises proposent à la vente","Le salaire demandé par un salarié","Le prix fixé par l’État"],a:0,e:"Demande = les quantités que les consommateurs souhaitent acheter. Offre = ce que les entreprises proposent à la vente."},
+{t:"offre",type:"qcm",q:"Une entreprise propose 50 places de crèche dans un quartier. Ces 50 places représentent…",c:["Son offre","La demande","Son chiffre d’affaires","Sa productivité"],a:0,e:"L’offre, c’est ce que l’entreprise met à disposition des clients. Les familles qui cherchent une place forment la demande."},
+{t:"offre",type:"qcm",q:"Dans quel ordre se suivent les phases du cycle de vie d’un produit ?",c:["Lancement → croissance → maturité → déclin","Croissance → lancement → déclin → maturité","Maturité → lancement → croissance → déclin","Lancement → déclin → croissance → maturité"],a:0,e:"Un produit naît (lancement), ses ventes montent (croissance), se stabilisent (maturité) puis baissent (déclin)."},
+{t:"offre",type:"qcm",q:"Les ventes d’un produit sont au plus haut et ne progressent plus. Il est en phase de…",c:["Maturité","Lancement","Croissance","Déclin"],a:0,e:"En maturité, les ventes plafonnent : presque tous les clients intéressés ont déjà acheté le produit."},
+{t:"offre",type:"qcm",q:"Le CD musical, remplacé par le streaming, est en phase de…",c:["Déclin","Lancement","Croissance","Maturité"],a:0,e:"Ses ventes baissent car un autre produit répond mieux à la demande : c’est le déclin."},
+{t:"offre",type:"qcm",q:"Proposer des consultations médicales par vidéo, c’est un exemple…",c:["D’innovation","De déclin","De monopole","D’externalisation"],a:0,e:"Une innovation est une nouveauté (produit, service, façon de produire) qui arrive sur le marché. La téléconsultation est un nouveau service."},
+{t:"offre",type:"qcm",q:"« Extraire → fabriquer → consommer → jeter » : c’est le modèle de production…",c:["Linéaire","Circulaire","Collaboratif","Solidaire"],a:0,e:"Dans le modèle linéaire, le produit finit à la poubelle. Le modèle circulaire, lui, réutilise, répare et recycle."},
+{t:"offre",type:"qcm",q:"Une ressourcerie remet en état des meubles usagés pour les revendre. Elle participe à…",c:["L’économie circulaire","La production linéaire","La croissance externe","Un monopole"],a:0,e:"Réutiliser, réparer et recycler les biens : c’est l’économie circulaire."},
+{t:"offre",type:"qcm",q:"Un EHPAD achète ses légumes directement à un maraîcher du coin. C’est un…",c:["Circuit court","Circuit long","Monopole","Flux poussé"],a:0,e:"Circuit court = vente directe du producteur au client, ou avec un seul intermédiaire au maximum."},
+{t:"offre",type:"qcm",q:"Louer un fauteuil roulant au mois au lieu de l’acheter, c’est payer pour…",c:["L’usage du bien","La propriété du bien","Un bien d’occasion","Un service public gratuit"],a:0,e:"On sépare l’usage de la propriété : on paie pour utiliser, sans posséder. Comme un abonnement musical à la place d’un CD."},
+{t:"offre",type:"vf",q:"Une entreprise peut proposer un produit dont personne n’avait encore exprimé le besoin.",a:0,e:"VRAI. La demande peut exister avant ou pas : le smartphone a créé un besoin qui n’existait pas vraiment avant lui."},
+{t:"offre",type:"vf",q:"En phase de lancement, un produit se vend déjà en très grande quantité.",a:1,e:"FAUX. Au lancement, le produit est peu connu : les ventes sont faibles et les coûts (publicité…) élevés."},
+{t:"offre",type:"oral",q:"Cite les 4 phases du cycle de vie d’un produit.",r:"Lancement, croissance, maturité, déclin.",e:"Bonus si l’élève donne un exemple de produit pour une phase."},
+{t:"offre",type:"oral",q:"Donne un exemple concret d’économie circulaire.",r:"Recyclage, vente d’occasion (Vinted, Emmaüs, ressourcerie), réparation, matériel médical reconditionné, compostage…",e:"L’idée : faire durer les biens et réduire les déchets."},
+
+/* ---------- MODULE 2 : ORGANISATION DE LA PRODUCTION ---------- */
+{t:"prod",type:"qcm",q:"Les deux grands facteurs de production sont…",c:["Le travail et le capital","Les clients et les fournisseurs","Les impôts et les salaires","L’offre et la demande"],a:0,e:"Pour produire, il faut du travail (les compétences des salariés) et du capital (machines, locaux, argent)."},
+{t:"prod",type:"qcm",q:"Dans un EHPAD, un lève-personne électrique fait partie…",c:["Du capital technique","Du facteur travail","Des matières premières","Du capital humain"],a:0,e:"Capital technique = les équipements et bâtiments utilisés pour produire pendant plusieurs années."},
+{t:"prod",type:"qcm",q:"Le travail des aides-soignantes d’un EHPAD correspond au facteur…",c:["Travail","Capital technique","Capital financier","Matière première"],a:0,e:"Le facteur travail, ce sont les personnes et leurs compétences."},
+{t:"prod",type:"qcm",q:"Une aide à domicile fait 12 visites en 6 heures. Sa productivité est de…",c:["2 visites par heure","6 visites par heure","72 visites par heure","0,5 visite par heure"],a:0,e:"Productivité = production ÷ temps de travail = 12 ÷ 6 = 2 visites par heure."},
+{t:"prod",type:"qcm",q:"Produire ou commander seulement quand le client le demande, avec très peu de stock, c’est travailler en…",c:["Flux tendus","Flux poussés","Croissance externe","Production linéaire"],a:0,e:"Flux tendus (ou « juste-à-temps ») : peu de stock, on produit ou on commande au fur et à mesure de la demande."},
+{t:"prod",type:"qcm",q:"Une cuisine centrale prépare 500 repas à l’avance, d’après ses prévisions, et les stocke. Elle travaille en…",c:["Flux poussés","Flux tendus","Externalisation","Circuit court"],a:0,e:"Flux poussés : on produit à l’avance selon des prévisions, puis on stocke en attendant les clients."},
+{t:"prod",type:"qcm",q:"Un hôpital confie le nettoyage de son linge à une blanchisserie extérieure. C’est…",c:["De l’externalisation","De la croissance interne","Un investissement","Un monopole"],a:0,e:"Externaliser = confier une activité à une autre entreprise au lieu de la faire soi-même."},
+{t:"prod",type:"qcm",q:"Un groupe de crèches ouvre lui-même 3 nouvelles crèches. C’est de la croissance…",c:["Interne","Externe","Négative","Publique"],a:0,e:"Croissance interne = l’entreprise grandit avec ses propres moyens (nouveaux locaux, nouvelles embauches)."},
+{t:"prod",type:"qcm",q:"Le même groupe rachète une crèche concurrente. C’est de la croissance…",c:["Externe","Interne","Circulaire","Linéaire"],a:0,e:"Croissance externe = grandir en rachetant d’autres entreprises ou en s’unissant avec elles."},
+{t:"prod",type:"qcm",q:"Acheter un nouveau véhicule adapté pour transporter les résidents, c’est…",c:["Un investissement","Une consommation intermédiaire","Un salaire","Une externalisation"],a:0,e:"Investir = acheter des biens durables qui serviront à produire pendant plusieurs années."},
+{t:"prod",type:"vf",q:"En flux tendus, l’entreprise garde de gros stocks.",a:1,e:"FAUX. Les flux tendus cherchent justement à avoir le moins de stock possible."},
+{t:"prod",type:"vf",q:"Si un salarié produit plus dans le même temps, sa productivité augmente.",a:0,e:"VRAI. Productivité = production ÷ temps : produire plus en autant de temps, c’est être plus productif."},
+{t:"prod",type:"oral",q:"Donne un exemple de capital technique dans une crèche ou un EHPAD.",r:"Lit médicalisé, lève-personne, table à langer, cuisine équipée, ordinateurs, véhicule, bâtiment…",e:"Capital technique = biens durables utilisés pour produire."},
+{t:"prod",type:"oral",q:"Explique la différence entre croissance interne et croissance externe.",r:"Interne : l’entreprise grandit par ses propres moyens (ouvrir un site, embaucher). Externe : elle rachète d’autres entreprises ou s’associe avec elles.",e:"Un exemple pour chacune = réponse parfaite."},
+
+/* ---------- MODULE 2 : ENVIRONNEMENT & ADAPTATION ---------- */
+{t:"envir",type:"qcm",q:"Sur un marché, une seule entreprise vend le produit. C’est un…",c:["Monopole","Oligopole","Marché concurrentiel","Circuit court"],a:0,e:"Monopole = un seul vendeur face à de nombreux acheteurs."},
+{t:"envir",type:"qcm",q:"Quelques grandes entreprises se partagent l’essentiel d’un marché. C’est un…",c:["Oligopole","Monopole","Marché concurrentiel","Flux tendu"],a:0,e:"Oligopole = un petit nombre de vendeurs (« oligo » = peu nombreux)."},
+{t:"envir",type:"qcm",q:"Des centaines d’entreprises d’aide à domicile se disputent les clients. C’est un marché…",c:["Concurrentiel","En monopole","En oligopole","Non marchand"],a:0,e:"Beaucoup de vendeurs en concurrence = marché concurrentiel."},
+{t:"envir",type:"qcm",q:"Dans PESTEL, le « S » correspond aux facteurs…",c:["Socioculturels","Salariaux","Sanitaires","Solidaires"],a:0,e:"PESTEL = Politiques, Économiques, Socioculturels, Technologiques, Environnementaux (écologiques), Légaux."},
+{t:"envir",type:"qcm",q:"Le vieillissement de la population est un facteur…",c:["Socioculturel (démographique)","Technologique","Légal","Politique"],a:0,e:"L’évolution de la population (âge, modes de vie, habitudes) fait partie des facteurs socioculturels."},
+{t:"envir",type:"qcm",q:"Pour une entreprise de services à la personne, le vieillissement de la population est plutôt…",c:["Une opportunité","Une menace","Sans aucun effet","Une obligation légale"],a:0,e:"Plus de personnes âgées, c’est plus de besoins d’aide à domicile : une opportunité de développement."},
+{t:"envir",type:"qcm",q:"Un nouveau concurrent s’installe dans la même rue qu’une crèche privée. Pour elle, c’est…",c:["Une menace","Une opportunité","Une innovation","Un label"],a:0,e:"Une menace est un élément extérieur qui peut nuire à l’entreprise : ici, le risque de perdre des clients."},
+{t:"envir",type:"qcm",q:"Une nouvelle loi impose plus de personnel par résident en EHPAD. C’est un facteur…",c:["Légal","Technologique","Socioculturel","Économique"],a:0,e:"Tout ce qui vient de la loi et des règlements = facteur légal."},
+{t:"envir",type:"qcm",q:"La RSE (responsabilité sociale des entreprises), c’est quand l’entreprise…",c:["Prend en compte de façon volontaire les enjeux sociaux et environnementaux","Cherche seulement à faire plus de bénéfices","Ne respecte que la loi, rien de plus","Fait payer ses clients plus cher"],a:0,e:"La RSE, c’est l’entreprise qui agit volontairement pour ses salariés, la société et la planète, au-delà de ses seuls profits."},
+{t:"envir",type:"qcm",q:"La norme ISO 9001 concerne…",c:["La qualité","Les salaires","Le prix de vente","La publicité"],a:0,e:"ISO 9001 = norme internationale de management de la qualité. Pour l’environnement, c’est ISO 14001."},
+{t:"envir",type:"vf",q:"La RSE ne concerne que l’environnement.",a:1,e:"FAUX. Elle concerne aussi le social : conditions de travail, égalité femmes-hommes, insertion, relations avec le territoire…"},
+{t:"envir",type:"vf",q:"Un label informe le client sur une qualité ou une caractéristique du produit.",a:0,e:"VRAI. Un label (bio, commerce équitable…) est un signe qui garantit certaines caractéristiques au client."},
+{t:"envir",type:"oral",q:"Que veulent dire les 6 lettres de PESTEL ?",r:"Politique, Économique, Socioculturel, Technologique, Environnemental (Écologique), Légal.",e:"C’est l’outil pour analyser l’environnement d’une entreprise."},
+{t:"envir",type:"oral",q:"Donne une action RSE qu’une crèche ou un EHPAD pourrait mettre en place.",r:"Couches lavables ou tri des déchets, repas bio/locaux, formation des salariés, réduction de l’énergie, embauche de personnes en insertion…",e:"Toute action volontaire, sociale ou environnementale, est acceptée."},
+
+/* ---------- MODULE 3 : COÛTS, VALEUR AJOUTÉE & PRIX ---------- */
+{t:"valeur",type:"qcm",q:"Pour une crèche, le loyer des locaux est une charge…",c:["Fixe","Variable","Exceptionnelle","Gratuite"],a:0,e:"Charge fixe = elle ne change pas avec l’activité. Le loyer est le même, qu’il y ait 20 ou 30 enfants."},
+{t:"valeur",type:"qcm",q:"Pour une crèche, les couches et les repas des enfants sont des charges…",c:["Variables","Fixes","Exceptionnelles","Financières"],a:0,e:"Charge variable = elle augmente avec l’activité. Plus il y a d’enfants, plus il faut de couches et de repas."},
+{t:"valeur",type:"qcm",q:"Un traiteur vend 200 repas à 8 € l’un. Son chiffre d’affaires est de…",c:["1 600 €","208 €","800 €","25 €"],a:0,e:"Chiffre d’affaires = prix de vente × quantités vendues = 8 × 200 = 1 600 €."},
+{t:"valeur",type:"qcm",q:"Chiffre d’affaires : 50 000 €. Total des charges : 42 000 €. Le résultat est…",c:["Un bénéfice de 8 000 €","Une perte de 8 000 €","Un bénéfice de 92 000 €","Un bénéfice de 50 000 €"],a:0,e:"Résultat = chiffre d’affaires − charges = 50 000 − 42 000 = 8 000 € (positif, donc bénéfice)."},
+{t:"valeur",type:"qcm",q:"Chiffre d’affaires : 30 000 €. Total des charges : 34 000 €. L’entreprise a…",c:["Une perte de 4 000 €","Un bénéfice de 4 000 €","Un bénéfice de 64 000 €","Un résultat nul"],a:0,e:"30 000 − 34 000 = −4 000 € : le résultat est négatif, c’est une perte."},
+{t:"valeur",type:"qcm",q:"La valeur ajoutée se calcule ainsi :",c:["Production − consommations intermédiaires","Chiffre d’affaires + salaires","Charges − bénéfice","Prix × quantité"],a:0,e:"Valeur ajoutée = ce que l’entreprise produit − ce qu’elle a acheté à d’autres entreprises et consommé pour produire (consommations intermédiaires)."},
+{t:"valeur",type:"qcm",q:"Production : 80 000 €. Consommations intermédiaires : 30 000 €. La valeur ajoutée est de…",c:["50 000 €","110 000 €","30 000 €","2,67 €"],a:0,e:"80 000 − 30 000 = 50 000 € : c’est la richesse réellement créée par l’entreprise."},
+{t:"valeur",type:"qcm",q:"Avec la valeur ajoutée, l’entreprise paie notamment les salaires. Les salariés reçoivent donc…",c:["Une part de la valeur ajoutée","Le chiffre d’affaires entier","Les consommations intermédiaires","Rien de la valeur ajoutée"],a:0,e:"La valeur ajoutée est partagée : salariés (salaires), État (impôts), banques et associés (intérêts, dividendes), entreprise (pour investir)."},
+{t:"valeur",type:"qcm",q:"Une heure d’aide à domicile coûte 21 € à l’entreprise et elle la facture 25 €. Sa marge est de…",c:["4 €","46 €","21 €","25 €"],a:0,e:"Marge = prix de vente − coût de revient = 25 − 21 = 4 € par heure."},
+{t:"valeur",type:"qcm",q:"Le prix psychologique, c’est…",c:["Le prix que la majorité des clients est prête à payer","Le prix le plus bas possible","Le prix fixé par l’État","Le coût de revient"],a:0,e:"Au-dessus, le client trouve ça trop cher. En dessous, il doute de la qualité. Les prix en « ,99 € » jouent aussi sur la psychologie du client."},
+{t:"valeur",type:"vf",q:"Chiffre d’affaires et bénéfice, c’est la même chose.",a:1,e:"FAUX. Le chiffre d’affaires, c’est tout l’argent des ventes. Le bénéfice, c’est ce qui reste une fois toutes les charges payées."},
+{t:"valeur",type:"vf",q:"Pour être rentable, une entreprise doit vendre plus cher que son coût de revient.",a:0,e:"VRAI. Sinon, elle perd de l’argent sur chaque vente : il faut une marge positive."},
+{t:"valeur",type:"oral",q:"Donne une charge fixe et une charge variable pour un EHPAD.",r:"Fixe : loyer, assurance, abonnement internet, salaire de la direction… Variable : repas, produits d’hygiène, protections, électricité (en partie)…",e:"Fixe = ne bouge pas avec l’activité. Variable = suit l’activité."},
+{t:"valeur",type:"oral",q:"Cite 3 acteurs qui reçoivent une part de la valeur ajoutée.",r:"Les salariés (salaires), l’État (impôts et cotisations), les associés ou actionnaires (dividendes), les banques (intérêts), l’entreprise elle-même (autofinancement).",e:"3 acteurs sur les 5 suffisent."}
+];
+
+
+/* =====================================================================
+   MOTEUR DU JEU
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const LETTERS = ["A","B","C","D"];
+const CIRC = 2 * Math.PI * 45;
+const DEFAULT_NAMES = ["Les Rouges","Les Bleus","Les Verts","Les Orange"];
+const tcol = i => `--tc:var(--T${i});--ts:var(--T${i}s)`;
+
+const S = {
+  nb:2, names:[...DEFAULT_NAMES], teams:[],
+  time:30, count:20, themes:new Set(Object.keys(THEMES)),
+  rebond:true, jackpot:true, sound:true,
+  deck:[], idx:0, q:null, team:0, owner:0, attempt:"main", phase:"idle",
+  remaining:30, endAt:0, timer:null, paused:false, out:new Set(), startTeam:0, lastSec:null,
+  wrongPick:null
+};
+
+/* ---------- Sauvegarde des réglages (facultatif) ---------- */
+function saveSettings(){
+  readNames();
+  try{ localStorage.setItem("duelEcoGestion_v3", JSON.stringify({
+    nb:S.nb, names:S.names, time:S.time, count:S.count,
+    themes:[...S.themes], rebond:S.rebond, jackpot:S.jackpot, sound:S.sound,
+    dark:document.documentElement.dataset.theme==="dark"})); }catch(e){}
+}
+function loadSettings(){
+  try{
+    const d = JSON.parse(localStorage.getItem("duelEcoGestion_v3")||"null"); if(!d) return;
+    if([2,3,4].includes(d.nb)) S.nb=d.nb;
+    if(Array.isArray(d.names)) d.names.forEach((n,i)=>{ if(i<4 && n) S.names[i]=n; });
+    if(typeof d.time==="number") S.time=d.time; if(typeof d.count==="number") S.count=d.count;
+    if(Array.isArray(d.themes)) S.themes=new Set(d.themes.filter(k=>THEMES[k]));
+    S.rebond=d.rebond!==false; S.jackpot=d.jackpot!==false; S.sound=d.sound!==false;
+    if(d.dark) document.documentElement.dataset.theme="dark";
+  }catch(e){}
+}
+
+/* ---------- Réglages ---------- */
+function readNames(){ $$("#teamInputs input").forEach((inp,i)=>{ S.names[i]=inp.value; }); }
+function buildTeamInputs(){
+  const box=$("#teamInputs"); box.innerHTML="";
+  for(let i=0;i<S.nb;i++){
+    const row=document.createElement("div"); row.className="team-input";
+    row.innerHTML=`<span class="dot" style="background:var(--T${i})"></span><input maxlength="22">`;
+    const inp=row.querySelector("input"); inp.value=S.names[i]; inp.oninput=saveSettings;
+    box.appendChild(row);
+  }
+}
+function buildSetup(){
+  const box=$("#themeToggles"); box.innerHTML="";
+  Object.entries(THEMES).forEach(([k,v])=>{
+    const n=BANK.filter(q=>q.t===k).length;
+    const l=document.createElement("label"); l.className="toggle";
+    l.innerHTML=`<input type="checkbox" ${S.themes.has(k)?"checked":""}> <span>${v.icon} ${v.label} <em>(${n} questions)</em></span>`;
+    l.querySelector("input").onchange=e=>{e.target.checked?S.themes.add(k):S.themes.delete(k);updateAvailable();saveSettings();};
+    box.appendChild(l);
+  });
+  markChip("#nbChips",`[data-nb="${S.nb}"]`);
+  buildTeamInputs();
+  markChip("#timeChips",`[data-time="${S.time}"]`);
+  if(![10,15,20,30,45,60,0].includes(S.time)) $("#customTime").value=S.time;
+  markChip("#countChips",`[data-count="${S.count}"]`);
+  $("#optRebond").checked=S.rebond; $("#optJackpot").checked=S.jackpot; $("#optSound").checked=S.sound;
+  updateAvailable();
+}
+function markChip(group, sel){
+  $$(group+" .chip").forEach(c=>c.classList.remove("on"));
+  const c=document.querySelector(group+" "+sel); if(c) c.classList.add("on");
+}
+function updateAvailable(){
+  const n=BANK.filter(q=>S.themes.has(q.t)).length;
+  const used=deckSize(n);
+  $("#available").textContent = n===0 ? "⚠️ Coche au moins un thème."
+    : `${n} questions disponibles → partie de ${used} questions, soit ${used/S.nb} par équipe (chaque équipe joue autant de fois).`;
+  $("#btnStart").disabled = used<S.nb;
+}
+function deckSize(n){
+  let k = S.count===0 ? n : Math.min(S.count,n);
+  return k - (k % S.nb);
+}
+$$("#nbChips .chip").forEach(b=>b.onclick=()=>{readNames();S.nb=+b.dataset.nb;markChip("#nbChips",`[data-nb="${S.nb}"]`);buildTeamInputs();updateAvailable();saveSettings();});
+$$("#timeChips .chip").forEach(b=>b.onclick=()=>{S.time=+b.dataset.time;$("#customTime").value="";markChip("#timeChips",`[data-time="${S.time}"]`);saveSettings();});
+$("#customTime").oninput=e=>{const v=parseInt(e.target.value,10); if(v>=5&&v<=300){S.time=v;markChip("#timeChips","[data-none]");saveSettings();}};
+$$("#countChips .chip").forEach(b=>b.onclick=()=>{S.count=+b.dataset.count;markChip("#countChips",`[data-count="${S.count}"]`);updateAvailable();saveSettings();});
+$("#optRebond").onchange=e=>{S.rebond=e.target.checked;saveSettings();};
+$("#optJackpot").onchange=e=>{S.jackpot=e.target.checked;saveSettings();};
+$("#optSound").onchange=e=>{S.sound=e.target.checked;updateSoundBtn();saveSettings();};
+
+/* ---------- Construction de la partie ---------- */
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function buildDeck(){
+  const pool=shuffle(BANK.filter(q=>S.themes.has(q.t)).map(q=>({...q})));
+  const deck=pool.slice(0,deckSize(pool.length));
+  deck.forEach(q=>{
+    if(q.type==="qcm"){
+      const perm=shuffle(q.c.map((_,i)=>i));
+      q.show=perm.map(i=>q.c[i]); q.ans=perm.indexOf(q.a);
+    }else if(q.type==="vf"){ q.show=["Vrai","Faux"]; q.ans=q.a; }
+    q.jp=false;
+  });
+  if(S.jackpot && deck.length>=6){
+    const nb=Math.max(1,Math.round(deck.length/7));
+    shuffle([...Array(deck.length-1).keys()].map(i=>i+1)).slice(0,nb).forEach(i=>deck[i].jp=true);
+  }
+  return deck;
+}
+
+function buildBoard(){
+  const L=$("#sideL"), R=$("#sideR"); L.innerHTML=""; R.innerHTML="";
+  $("#topbar").className="topbar n"+S.nb;
+  const half=Math.ceil(S.nb/2);
+  S.teams.forEach((t,i)=>{
+    const c=document.createElement("div"); c.className="team-card"; c.id="team"+i; c.style.cssText=tcol(i);
+    c.innerHTML=`<div class="info"><div class="team-name"></div><div class="team-score">0</div></div>
+      <div class="adj"><button data-adj="${i},1" title="Ajouter 1 point">+</button><button data-adj="${i},-1" title="Retirer 1 point">−</button></div>`;
+    (i<half?L:R).appendChild(c);
+  });
+  $$("[data-adj]").forEach(b=>b.onclick=()=>{const [t,d]=b.dataset.adj.split(",").map(Number); S.teams[t].score+=d; updateScores();});
+}
+
+function startGame(){
+  readNames();
+  S.teams=[];
+  for(let i=0;i<S.nb;i++) S.teams.push({name:(S.names[i]||"").trim()||DEFAULT_NAMES[i],score:0,good:0});
+  S.deck=buildDeck();
+  if(S.deck.length<S.nb) return;
+  saveSettings();
+  show("game"); buildBoard();
+  $("#qTotal").textContent=S.deck.length;
+  S.startTeam=Math.floor(Math.random()*S.nb);
+  updateScores(); S.phase="idle"; ac();
+  showOverlay(`🎲 Tirage au sort…`,900).then(()=>{
+    sfx("jackpot");
+    return showOverlay(`<span style="color:var(--T${S.startTeam})">${esc(S.teams[S.startTeam].name)}</span><br>commence !<small>Clique ou appuie sur Espace</small>`,3500);
+  }).then(()=>loadQuestion(0));
+}
+
+function loadQuestion(i){
+  stopTimer();
+  S.idx=i; S.q=S.deck[i]; S.owner=(S.startTeam+i)%S.nb; S.team=S.owner; S.attempt="main";
+  S.out=new Set(); S.wrongPick=null; S.phase="ready"; S.remaining=S.time; S.lastSec=null;
+  render(); updateTimerUI();
+  if(S.q.jp && S.jackpot){
+    sfx("jackpot");
+    S.phase="locked";
+    showOverlay(`💰 QUESTION JACKPOT 💰<small>Tous les points de cette question sont doublés !</small>`,2200).then(()=>{S.phase="ready";render();});
+  }
+}
+
+/* ---------- Affichage ---------- */
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function show(id){["setup","game","end"].forEach(s=>$("#"+s).classList.toggle("hidden",s!==id));}
+
+function updateScores(){
+  S.teams.forEach((t,i)=>{
+    const c=$("#team"+i); if(!c) return;
+    c.querySelector(".team-name").textContent=t.name;
+    c.querySelector(".team-score").textContent=t.score;
+  });
+}
+
+function render(){
+  const q=S.q, t=S.teams[S.team], live=["ready","running","locked"].includes(S.phase);
+  updateScores();
+  S.teams.forEach((_,i)=>$("#team"+i).classList.toggle("active", live && S.team===i));
+  $("#qNum").textContent=S.idx+1;
+  $("#progBar").style.width=((S.idx)/S.deck.length*100)+"%";
+
+  const ban=$("#banner"); ban.className="banner"; ban.style.background="";
+  const mult = q.jp&&S.jackpot ? 2 : 1;
+  if(live && S.attempt==="main"){
+    ban.style.background=`var(--T${S.team})`;
+    ban.innerHTML=`🎯 À vous de jouer : ${esc(t.name)} ! <span style="opacity:.8">(${2*mult} pts)</span>`;
+  }else if(live && S.attempt==="rebond"){
+    ban.classList.add("rebond"); ban.style.background=`var(--T${S.team})`;
+    ban.innerHTML=`↩️ REBOND ! ${esc(t.name)} peut voler la question <span style="opacity:.8">(${1*mult} pt${mult>1?"s":""})</span>`;
+  }else{
+    ban.classList.add("neutral"); ban.innerHTML="📖 Correction";
+  }
+
+  $("#qTheme").textContent=THEMES[q.t].icon+" "+THEMES[q.t].label;
+  const qt=$("#qType"); qt.className="pill";
+  if(q.type==="oral"){qt.textContent="🎤 Défi oral";qt.classList.add("type-oral");}
+  else if(q.type==="vf"){qt.textContent="⚖️ Vrai ou faux ?";qt.classList.add("type-vf");}
+  else qt.textContent="❓ QCM";
+  $("#qJackpot").classList.toggle("hidden",!(q.jp&&S.jackpot));
+  $("#qText").textContent=q.q;
+
+  const ch=$("#choices"); ch.className="choices"+(q.type==="vf"?" vf":"");
+  if(q.type==="oral"){
+    if(S.phase==="reveal"){ ch.innerHTML=""; }
+    else ch.innerHTML=`<div class="oral-zone">
+      <div class="info">L’équipe répond à voix haute — le prof valide</div>
+      <button class="verdict ok" data-verdict="ok">✔ Bonne réponse <kbd>V</kbd></button>
+      <button class="verdict ko" data-verdict="ko">✘ Mauvaise réponse <kbd>X</kbd></button></div>`;
+  }else{
+    ch.innerHTML=q.show.map((txt,i)=>{
+      let cls="choice";
+      if(S.out.has(i)) cls+=" out";
+      if(S.phase==="reveal"){ if(i===q.ans) cls+=" correct"; else if(!S.out.has(i)) cls+=" dim"; }
+      return `<button class="${cls}" data-i="${i}"><span class="letter">${LETTERS[i]}</span><span>${esc(txt)}</span></button>`;
+    }).join("");
+    if(S.wrongPick!==null){
+      const b=ch.querySelector(`[data-i="${S.wrongPick}"]`); if(b){b.classList.add("shake");}
+      S.wrongPick=null;
+    }
+  }
+
+  const ex=$("#explain");
+  if(S.phase==="reveal"){
+    ex.classList.remove("hidden");
+    if(q.type==="oral") ex.innerHTML=`<b>✅ Réponse attendue :</b> ${esc(q.r)}<br>${esc(q.e)}`;
+    else ex.innerHTML=`<b>✅ Réponse : ${LETTERS[q.ans]} — ${esc(q.show[q.ans])}</b><br>${esc(q.e)}`;
+  }else ex.classList.add("hidden");
+
+  const bm=$("#btnMain");
+  if(S.phase==="ready"){ bm.disabled=false; bm.innerHTML= S.time===0 ? "⏳ En attente de la réponse" : `▶ Lancer le chrono <kbd>Espace</kbd>`; if(S.time===0) bm.disabled=true; }
+  else if(S.phase==="running"){ bm.disabled=true; bm.innerHTML="⏳ Chrono en cours…"; }
+  else if(S.phase==="reveal"){ bm.disabled=false; bm.innerHTML= S.idx+1>=S.deck.length ? `🏆 Voir les résultats <kbd>Espace</kbd>` : `Question suivante → <kbd>Espace</kbd>`; }
+  else { bm.disabled=true; }
+  $("#btnPause").disabled = S.phase!=="running" || S.time===0;
+  $("#btnPause").innerHTML = S.paused ? "▶ Reprendre <kbd>P</kbd>" : "⏸ Pause <kbd>P</kbd>";
+  $("#btnSkip").disabled = S.phase==="reveal";
+}
+
+/* ---------- Chrono ---------- */
+function startTimer(){
+  if(S.phase!=="ready") return;
+  S.phase="running"; S.paused=false;
+  if(S.time>0){
+    S.remaining=S.time; S.endAt=performance.now()+S.remaining*1000; S.lastSec=null;
+    clearInterval(S.timer); S.timer=setInterval(tick,100);
+    sfx("start");
+  }
+  render(); updateTimerUI();
+}
+function tick(){
+  S.remaining=Math.max(0,(S.endAt-performance.now())/1000);
+  const sec=Math.ceil(S.remaining);
+  if(sec!==S.lastSec){ if(sec<=5&&sec>0) sfx("tick"); S.lastSec=sec; }
+  updateTimerUI();
+  if(S.remaining<=0){ stopTimer(); timeUp(); }
+}
+function stopTimer(){ clearInterval(S.timer); S.timer=null; S.paused=false; $("#timerWrap").classList.remove("paused"); }
+function togglePause(){
+  if(S.phase!=="running"||S.time===0) return;
+  if(!S.paused){ clearInterval(S.timer); S.timer=null; S.paused=true; }
+  else{ S.endAt=performance.now()+S.remaining*1000; S.timer=setInterval(tick,100); S.paused=false; }
+  $("#timerWrap").classList.toggle("paused",S.paused);
+  updateTimerUI(); render();
+}
+function updateTimerUI(){
+  const w=$("#timerWrap"), txt=$("#timerTxt"), ring=$("#ring");
+  w.classList.remove("warn","danger");
+  if(S.time===0){ txt.textContent="∞"; ring.style.strokeDashoffset=0; return; }
+  if(S.paused){ txt.textContent="PAUSE"; return; }
+  const ratio=S.remaining/S.time;
+  ring.style.strokeDashoffset = CIRC*(1-ratio);
+  txt.textContent=Math.ceil(S.remaining);
+  if(S.phase==="running"){ if(S.remaining<=5) w.classList.add("danger"); else if(ratio<=.5) w.classList.add("warn"); }
+}
+function timeUp(){
+  sfx("buzz");
+  if(canRebound()) rebound(); else reveal();
+}
+
+/* ---------- Réponses ---------- */
+function canRebound(){ return S.rebond && S.attempt==="main" && S.q.type!=="vf"; }
+function answer(i){
+  if(!["ready","running"].includes(S.phase)||S.paused) return;
+  const q=S.q; if(q.type==="oral"||i>=q.show.length||S.out.has(i)) return;
+  stopTimer();
+  if(i===q.ans) win();
+  else{
+    S.out.add(i); S.wrongPick=i; sfx("wrong");
+    if(canRebound()) rebound(); else reveal();
+  }
+}
+function oralVerdict(ok){
+  if(!["ready","running"].includes(S.phase)||S.paused||S.q.type!=="oral") return;
+  stopTimer();
+  if(ok) win();
+  else{ sfx("wrong"); if(canRebound()) rebound(); else reveal(); }
+}
+function win(){
+  const pts=(S.attempt==="main"?2:1)*(S.q.jp&&S.jackpot?2:1);
+  const t=S.teams[S.team]; t.score+=pts; t.good++;
+  sfx("correct");
+  const card=$("#team"+S.team);
+  const f=document.createElement("div"); f.className="float"; f.textContent="+"+pts; card.appendChild(f); setTimeout(()=>f.remove(),1400);
+  const sc=card.querySelector(".team-score"); sc.classList.remove("bump"); void sc.offsetWidth; sc.classList.add("bump");
+  const r=card.getBoundingClientRect(); confetti(70, r.left+r.width/2, r.top+r.height/2);
+  reveal();
+}
+function rebound(){
+  S.attempt="rebond"; S.team=(S.owner+1)%S.nb; S.phase="ready"; S.remaining=S.time; S.lastSec=null;
+  sfx("rebond"); render(); updateTimerUI();
+  const idx=S.idx;
+  if(S.time>0) setTimeout(()=>{ if(S.idx===idx&&S.attempt==="rebond"&&S.phase==="ready") startTimer(); },1300);
+  else { S.phase="running"; render(); }
+}
+function reveal(){ stopTimer(); S.phase="reveal"; render(); updateTimerUI(); $("#progBar").style.width=((S.idx+1)/S.deck.length*100)+"%"; }
+function next(){
+  if(S.phase!=="reveal") return;
+  if(S.idx+1>=S.deck.length) endGame(); else loadQuestion(S.idx+1);
+}
+function skip(){ if(S.phase==="reveal"||S.phase==="idle") return; stopTimer(); reveal(); }
+function mainAction(){
+  if(S.phase==="ready"){ if(S.time>0) startTimer(); }
+  else if(S.phase==="reveal") next();
+}
+
+/* ---------- Fin de partie ---------- */
+function endGame(){
+  stopTimer(); S.phase="end"; show("end");
+  const ranked=S.teams.map((t,i)=>({...t,i})).sort((a,b)=>b.score-a.score||b.good-a.good);
+  const top=ranked[0].score, winners=ranked.filter(t=>t.score===top);
+  const medals=["🥇","🥈","🥉","4ᵉ"];
+  let rank=0;
+  $("#final").innerHTML=ranked.map((t,k)=>{
+    if(k===0||t.score!==ranked[k-1].score) rank=k;
+    return `<div class="box ${t.score===top?"first":""}" style="${tcol(t.i)}">
+      <div class="rank">${medals[rank]}</div><div class="n">${esc(t.name)}</div><div class="s">${t.score}</div>
+      <div class="g">${t.good} bonne${t.good>1?"s":""} réponse${t.good>1?"s":""}</div></div>`;
+  }).join("");
+  const w=$("#winner");
+  if(winners.length>1){ $("#trophy").textContent="🤝"; w.textContent="Égalité en tête : "+winners.map(t=>t.name).join(" et ")+" !"; w.style.color="var(--ink)"; }
+  else{ $("#trophy").textContent="🏆"; w.textContent=`Victoire : ${winners[0].name} !`; w.style.color=`var(--T${winners[0].i})`; }
+  sfx("fanfare"); confetti(260, innerWidth/2, innerHeight/3);
+}
+
+/* ---------- Overlay ---------- */
+let overlayDone=null;
+function showOverlay(html,ms){
+  return new Promise(res=>{
+    const ov=$("#overlay"); $("#overlayBox").innerHTML=html; ov.classList.remove("hidden");
+    let closed=false;
+    const done=()=>{ if(closed) return; closed=true; ov.classList.add("hidden"); overlayDone=null; res(); };
+    overlayDone=done; ov.onclick=done; if(ms) setTimeout(done,ms);
+  });
+}
+
+/* ---------- Sons (générés, aucun fichier externe) ---------- */
+let actx=null;
+function ac(){ try{ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==="suspended") actx.resume(); }catch(e){} return actx; }
+function tone(f,d,type="sine",vol=.2,when=0){
+  if(!S.sound) return; const a=ac(); if(!a) return;
+  try{
+    const o=a.createOscillator(), g=a.createGain(); o.type=type; o.frequency.value=f;
+    const t=a.currentTime+when; g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+.015); g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+d+.05);
+  }catch(e){}
+}
+function sfx(n){
+  switch(n){
+    case "correct": [523,659,784,1047].forEach((f,i)=>tone(f,.25,"triangle",.22,i*.08)); break;
+    case "wrong": tone(220,.3,"sawtooth",.15); tone(160,.45,"sawtooth",.15,.18); break;
+    case "tick": tone(880,.06,"square",.07); break;
+    case "buzz": tone(130,.8,"sawtooth",.22); tone(138,.8,"square",.1); break;
+    case "rebond": tone(392,.15,"triangle",.2); tone(587,.25,"triangle",.2,.12); break;
+    case "start": tone(660,.12,"triangle",.15); break;
+    case "jackpot": [784,988,1175,1568,1175,1568].forEach((f,i)=>tone(f,.18,"square",.09,i*.07)); break;
+    case "fanfare": [523,523,523,659,784,659,784,1047].forEach((f,i)=>tone(f,i===7?.8:.2,"triangle",.22,i*.15)); break;
+  }
+}
+function updateSoundBtn(){ $("#btnSound").textContent=S.sound?"🔊":"🔇"; }
+
+/* ---------- Confettis ---------- */
+const cv=$("#confetti"), cx=cv.getContext("2d"); let parts=[], raf=null;
+function resize(){ cv.width=innerWidth; cv.height=innerHeight; } addEventListener("resize",resize); resize();
+function confetti(n,x,y){
+  const cols=["#e0262f","#1660d4","#2a9a3c","#e97b00","#f2a900","#7b3fe4","#0e9f9a"];
+  for(let i=0;i<n;i++){ const ang=Math.random()*Math.PI*2, sp=4+Math.random()*9;
+    parts.push({x,y,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp-6,s:6+Math.random()*8,c:cols[i%cols.length],r:Math.random()*6,vr:(Math.random()-.5)*.4,life:140+Math.random()*60}); }
+  if(!raf) loop();
+}
+function loop(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  parts.forEach(p=>{ p.vy+=.25; p.vx*=.99; p.x+=p.vx; p.y+=p.vy; p.r+=p.vr; p.life--;
+    cx.save(); cx.translate(p.x,p.y); cx.rotate(p.r); cx.fillStyle=p.c; cx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2); cx.restore(); });
+  parts=parts.filter(p=>p.life>0&&p.y<cv.height+40);
+  raf = parts.length ? requestAnimationFrame(loop) : (cx.clearRect(0,0,cv.width,cv.height), null);
+}
+
+/* ---------- Boutons & clavier ---------- */
+$("#btnStart").onclick=startGame;
+$("#btnMain").onclick=mainAction;
+$("#btnPause").onclick=togglePause;
+$("#btnSkip").onclick=skip;
+$("#btnFull").onclick=toggleFull;
+$("#btnSound").onclick=()=>{S.sound=!S.sound;$("#optSound").checked=S.sound;updateSoundBtn();saveSettings();};
+$("#btnTheme").onclick=()=>{const r=document.documentElement; r.dataset.theme = r.dataset.theme==="dark"?"light":"dark"; saveSettings();};
+$("#btnQuit").onclick=()=>{ if(confirm("Terminer la partie maintenant et afficher les résultats ?")) endGame(); };
+$("#btnReplay").onclick=startGame;
+$("#btnSettings").onclick=()=>{show("setup");buildSetup();};
+$("#choices").addEventListener("click",e=>{
+  const c=e.target.closest("[data-i]"); if(c){answer(+c.dataset.i);return;}
+  const v=e.target.closest("[data-verdict]"); if(v) oralVerdict(v.dataset.verdict==="ok");
+});
+function toggleFull(){
+  try{ if(!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }catch(e){}
+}
+document.addEventListener("keydown",e=>{
+  if(e.target.tagName==="INPUT") return;
+  const k=e.key.toLowerCase();
+  if(overlayDone && (k===" "||k==="enter")){ e.preventDefault(); overlayDone(); return; }
+  if(k==="f"){ toggleFull(); return; }
+  if($("#game").classList.contains("hidden")) return;
+  if(k===" "||k==="enter"){ e.preventDefault(); mainAction(); }
+  else if(["a","b","c","d"].includes(k)) answer("abcd".indexOf(k));
+  else if(["1","2","3","4"].includes(k)) answer(+k-1);
+  else if(k==="v") oralVerdict(true);
+  else if(k==="x") oralVerdict(false);
+  else if(k==="p") togglePause();
+});
+
+/* ---------- Démarrage ---------- */
+loadSettings(); buildSetup(); updateSoundBtn();
+</script>
+</body>
+</html>
